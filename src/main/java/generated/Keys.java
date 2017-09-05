@@ -5,7 +5,9 @@ package generated;
 
 
 import generated.tables.Receipts;
+import generated.tables.Tags;
 import generated.tables.records.ReceiptsRecord;
+import generated.tables.records.TagsRecord;
 
 import javax.annotation.Generated;
 
@@ -39,6 +41,7 @@ public class Keys {
 	// -------------------------------------------------------------------------
 
 	public static final UniqueKey<ReceiptsRecord> CONSTRAINT_F = UniqueKeys0.CONSTRAINT_F;
+	public static final UniqueKey<TagsRecord> CONSTRAINT_2 = UniqueKeys0.CONSTRAINT_2;
 
 	// -------------------------------------------------------------------------
 	// FOREIGN KEY definitions
@@ -55,5 +58,6 @@ public class Keys {
 
 	private static class UniqueKeys0 extends AbstractKeys {
 		public static final UniqueKey<ReceiptsRecord> CONSTRAINT_F = createUniqueKey(Receipts.RECEIPTS, Receipts.RECEIPTS.ID);
+		public static final UniqueKey<TagsRecord> CONSTRAINT_2 = createUniqueKey(Tags.TAGS, Tags.TAGS.NAME, Tags.TAGS.RECEIPT_ID);
 	}
 }
