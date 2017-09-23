@@ -39,6 +39,12 @@ public class ReceiptController {
         return receiptRecords.stream().map(ReceiptResponse::new).collect(toList());
     }
 
+    @GET
+    @Path("/receipts/{id}")
+    public List<String> getTags(@PathParam("id") Integer receiptID){
+        return tags.getTagsForReceipt(receiptID);
+    }
+
     @PUT
     @Path("/tags/{tag}")
     public void toggleTag(@PathParam("tag") String tagName, Integer receiptID) {

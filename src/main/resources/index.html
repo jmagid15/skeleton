@@ -2,12 +2,15 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="style.css" />
+    <title>Receipt Logger</title>
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <style>
-        #container {border: 1px solid brown;}
-        H1 {float: left;}
-
+        #container {
+          border: 1px solid brown;
+        }
+        H1 {
+          float: left;
+        }
         .button{
             background-color:#55A;
             border: 1px solid #229;
@@ -18,41 +21,225 @@
             text-align: center;
         }
 
+        .input-form {
+            display: none;
+            clear: both;
+        }
+
         #receiptList {
             border: 1px solid green;
             clear: both;
         }
-
         .receipt {
             background-color: #eee;
             margin-bottom: 5px;
+        }
+        td {
+          vertical-align: middle;
+          text-align: center;
+        }
+        .tagValue {
+          background-color: lightskyblue;
+          text-align: center;
+          vertical-align: middle;
+          margin: 5px;
+          cursor: pointer;
+        }
+
+        .add-tag {
+          background-color: white;
+          text-align: center;
+          vertical-align: middle;
+          margin: 5px;
+          cursor: pointer;
         }
 
     </style>
     <script>
         // This is the idiomatic way to ensure that JQuery does not
         // execute until the page has loaded
-        $(function(){
-            const api = ""; // <- do not need a root api URL if this page is served directly by the API
+        const api = ""; // <- do not need a root api URL if this page is served directly by the API
 
+        $(function(){
+            $("#receiptList").html(
+                `<tr style='height: 60px'>
+                    <th>Time</th>
+                     <th>Merchant</th>
+                    <th>Amount ($)</th>
+                    <th>Tags</th>
+                    </tr>`);
             $.getJSON(api+"/receipts", function(receipts){
                 for(var i=0; i < receipts.length; i++) {
                     var receipt = receipts[i];
-                    $(`<div class="receipt">${receipt.merchantName}<div><span class="receiptTag">t1</span></div></div>`)
+                    $(`<tr class="receipt">
+                        <td class = "time">${receipt.created}</td>
+                        <td class = "merchant">${receipt.merchantName}</td>
+                        <td class = "amount">${receipt.value.toFixed(2)}</td>
+                        <td class = "tags" id=${"TagCell" + receipt.id.toString()}>
+                            <div id=${"Tags" + receipt.id.toString()}></div>
+                            <div id=${"Button" + receipt.id.toString()}></div>
+                        </td>
+                     </tr>`)
                         .appendTo($("#receiptList"));
+                    addTagsToRow(receipt.id);
+                    insertAddTagButton(receipt.id);
                 }
+            });
 
-            })
         })
+
+        function loadReceipt(receiptID) {
+            if ($(".receipt")[receiptID - 1] != null){
+                $("#Tags" + receiptID).html('');
+                addTagsToRow(receiptID);
+            } else {
+                $.getJSON(api+"/receipts", function(receipts){
+                    var receipt = receipts[receiptID - 1];
+                    $(`<tr class="receipt">
+                    <td class = "time">${receipt.created}</td>
+                    <td class = "merchant">${receipt.merchantName}</td>
+                    <td class = "amount">${receipt.value.toFixed(2)}</td>
+                    <td class = "tags" id=${"TagCell" + receipt.id.toString()}>
+                        <div id=${"Tags" + receipt.id.toString()}></div>
+                        <div id=${"Button" + receipt.id.toString()}></div>
+                    </td>
+                 </tr>`)
+                        .appendTo($("#receiptList"));
+                    addTagsToRow(receipt.id);
+                    insertAddTagButton(receipt.id);
+                });
+            }
+
+        }
+
+        function addTagsToRow(receiptID) {
+          var rID = receiptID.toString();
+          $.ajax({
+            url: api + "/receipts/" + rID,
+            type: 'GET',
+            success: function(tagList) {
+                for (var i = 0; i < tagList.length; i++) {
+                var tagName = tagList[i];
+                addTagButtonToRow(tagName, rID);
+              };
+            }
+          });
+        }
+
+
+        function addTagButtonToRow(tagName, rID) { 
+          if (tagName != "") {
+              $(`<div class="tagValue" id=${"tagObject" + rID.toString() + "-" + tagName.toString()} >${tagName}</div>`).appendTo($("#Tags" + rID));
+              $("#tagObject" + rID.toString() + "-" + tagName.toString()).click( function () {
+                  toggleTag(tagName,rID);
+              });
+              $("#tagObject" + rID.toString() + "-" + tagName.toString()).hover(function(){
+                   $(this).css("background-color", "yellow");
+                   $(this).css("text-decoration", "line-through");
+               }, function(){$(this).css("background-color", "lightskyblue");
+                   $(this).css("text-decoration", "none");
+               });
+
+          }
+        }
+
+
+
+        function toggleTag(tagName, receiptID) {
+            var id = JSON.stringify(receiptID);
+          $.ajax({
+              dataType: "json",
+              url: api + "/tags/" + tagName,
+              type: 'PUT',
+              data: id,
+              contentType: "application/json",
+              success: function() {
+                    loadReceipt(receiptID);
+              },
+              error: function() {
+                 alert("Issue encountered adding or removing tag. Try again.")
+              }
+          });
+        }
+
+        function addTag(receiptID, event) {
+            if(event.keyCode == 13) { // Value for the enter key
+                var tag_box_name = "#TagEntryBox" + receiptID.toString();
+                var box = $(tag_box_name);
+                var inputTag = box.val();
+                box.remove();
+                toggleTag(inputTag, receiptID);
+            }
+        }
+
+        function addInput(receiptID) {
+            var entryBoxID = document.getElementById("TagEntryBox" + receiptID.toString());
+            // Check if entryBox not already displayed
+            if (entryBoxID == null) {
+                $(`<input class="tag_input" id =${"TagEntryBox" + receiptID.toString()} placeholder="New Tag" onkeyup="addTag(${receiptID} ,event);">`).appendTo($("#Button"+ receiptID.toString()));
+            } else {
+                // Else remove the entryBox from the screen
+                entryBoxID.remove();
+            }
+        }
+
+
+        function insertAddTagButton(receiptID) {
+          $(`<button class="add-tag" onclick="addInput(${receiptID});">Add +</button>`).appendTo($("#Button" + receiptID.toString()));
+        }
+
+        function showForm() {
+            var form = $(".input-form");
+            if (!form.is(":visible")) {
+                form.show();
+            } else {
+                hide();
+            }
+        }
+
+        function hide () {
+            $(".input-form").hide();
+            $("#merchant").val("");
+            $("#amount").val("");
+        }
+
+        function addReceipt () {
+            var receiptData = JSON.stringify({"merchant": $("#merchant").val(), "amount": $("#amount").val()});
+
+            $.ajax({
+                dataType: "json",
+                contentType: "application/json",
+                url: api + "/receipts",
+                type: 'POST',
+                data: receiptData,
+                success: function(id) {
+                    loadReceipt(id);
+                },
+                error: function() {
+                    alert("Your receipt could not be processed.");
+                }
+            });
+
+            hide();
+        }
+
     </script>
 </head>
 
 <body>
 <DIV id="container">
     <h1>My receipts</h1>
-    <div class="button">+</div>
-    <div id="receiptList">
+    <div class="button" id="add-receipt" onclick="showForm()">+</div>
+    <div class="input-form">
+        Merchant:
+        <input id="merchant" type="text">
+        Amount:
+        <input id="amount" type="text">
+        <button id = "cancel-receipt" onclick="hide(); return false;">Cancel</button>
+        <button id = "save-receipt" onclick="addReceipt(); return false;">Add Receipt</button>
     </div>
+    <table width="100%" id="receiptList">
+    </table>
 </DIV>
 </body>
 
