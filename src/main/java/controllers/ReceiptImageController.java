@@ -4,11 +4,15 @@ import api.ReceiptSuggestionResponse;
 import com.google.cloud.vision.v1.*;
 import com.google.protobuf.ByteString;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.regex.Pattern;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import org.hibernate.validator.constraints.NotEmpty;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import static java.lang.System.out;
 
@@ -45,18 +49,26 @@ public class ReceiptImageController {
             BatchAnnotateImagesResponse responses = client.batchAnnotateImages(Collections.singletonList(request));
             AnnotateImageResponse res = responses.getResponses(0);
 
-            String merchantName = null;
+            String merchantName = "";
             BigDecimal amount = null;
 
-            // Your Algo Here!!
-            // Sort text annotations by bounding polygon.  Top-most non-decimal text is the merchant
-            // bottom-most decimal text is the total amount
-            for (EntityAnnotation annotation : res.getTextAnnotationsList()) {
-                out.printf("Position : %s\n", annotation.getBoundingPoly());
-                out.printf("Text: %s\n", annotation.getDescription());
+            String[] lines = res.getTextAnnotationsList().get(0).getDescription().split("[\t\n\r]");
+
+            merchantName = lines[0];
+            String amtRegExp = "\\d+\\.\\d+";
+            out.printf("Merchant name %s\n",merchantName);
+
+            for (int i=lines.length-1; i>=0; i--){
+                // Reference: https://stackoverflow.com/questions/9991750/how-to-split-a-decimal-number-from-a-string-in-java
+                String tempLine = lines[i].trim();
+                Pattern p = Pattern.compile(amtRegExp);
+                Matcher m = p.matcher(tempLine);
+                if (m.find()) {
+                    amount = new BigDecimal(m.group());
+                    break;
+                }
             }
 
-            //TextAnnotation fullTextAnnotation = res.getFullTextAnnotation();
             return new ReceiptSuggestionResponse(merchantName, amount);
         }
     }

@@ -6,19 +6,25 @@
     <script data-require="jquery@*" data-semver="3.1.1" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
     <style>
         #container {
-          border: 1px solid brown;
+          background-color: whitesmoke;
         }
+
         H1 {
           float: left;
         }
+
         .button{
             background-color:#55A;
             border: 1px solid #229;
-            width: 100px;
+            width: 120px;
             float: right;
             font-size: 2em;
             color: white;
             text-align: center;
+        }
+
+       .invisible{
+            display: none;
         }
 
         .input-form {
@@ -40,13 +46,13 @@
         }
 
         video {
-            width: 550px;
+            width: 100%;
             height: 450px;
             border: 1px solid black;
         }
 
         #vidwrap {
-            margin: 20px 0;
+            margin: 5px 0;
         }
 
         td {
@@ -69,9 +75,28 @@
           cursor: pointer;
         }
 
-        #start, #snapshot {
+        #take-pic-cancel, #snapshot {
             height: 3em;
         }
+
+        #containerLeft {
+            background-color: whitesmoke;
+            border: 2px solid black;
+            position: absolute;
+            left: 0px;
+            width: 50%;
+        }
+
+        #containerRight {
+            background-color: whitesmoke;
+            border: 2px solid black;
+            position: absolute;
+            right: 0px;
+            width: 50%;
+        }
+
+
+
     </style>
     <script>
         // This is the idiomatic way to ensure that JQuery does not
@@ -117,11 +142,12 @@
                     data: base64EncodedImageData,
                     contentType: "text/plain",
                     success: function() {},
-               })
-                .then(response => {
-                    $('video').after(`<div>got response: <pre>${JSON.stringify(response)}</pre></div>`);
-                })
-                .always(() => console.log('request complete'));
+               }).then(response => {
+                    //$('video').after(`<div>got response: <pre>${JSON.stringify(response)}</pre></div>`);
+                    $("#merchant").val(response.merchantName);
+                    $("#amount").val(response.amount);
+                    $(".input-form").show();
+                }).always(() => console.log('request complete'));
 
                 // For debugging, you can uncomment this to see the frame that was captured
                 // $('BODY').append(canvas);
@@ -131,7 +157,7 @@
 
 
         $(function () {
-            $('#start').on('click', startVideo);
+            // $('#start').on('click', startVideo);
             $('video').on('play', () => $('#snapshot').prop('disabled', false));
             $('#snapshot').on('click', takeSnapshot);
         });
@@ -140,7 +166,7 @@
             $("#receiptList").html(
                 `<tr style='height: 60px'>
                     <th>Time</th>
-                     <th>Merchant</th>
+                    <th>Merchant</th>
                     <th>Amount ($)</th>
                     <th>Tags</th>
                     </tr>`);
@@ -299,30 +325,56 @@
             hide();
         }
 
+        function showCam() {
+            var cam = $("#containerRight");
+            if (!cam.is(":visible")) {
+                startVideo();
+                cam.show();
+            } else {
+                track.stop();
+                cam.hide();
+            }
+        }
+
+
+
+
     </script>
 </head>
 
 <body>
 <DIV id="container">
-    <h1>My receipts</h1>
-    <div class="button" id="add-receipt" onclick="showForm()">+</div>
-    <div class="input-form">
-        Merchant:
-        <input id="merchant" type="text">
-        Amount:
-        <input id="amount" type="text">
-        <button id = "cancel-receipt" onclick="hide(); return false;">Cancel</button>
-        <button id = "save-receipt" onclick="addReceipt(); return false;">Add Receipt</button>
+    <div id="containerLeft">
+        <h1>My receipts</h1>
+        <div class="button" id="add-receipt" onclick="showForm()">+</div>
+        <div class="button" id="start-camera" onclick="showCam()">Camera</div>
+        <!--<button id = "camera" onclick="showCam()">camera</button>-->
+        <div class="input-form">
+            Merchant:
+            <input id="merchant" type="text">
+            Amount:
+            <input id="amount" type="text">
+            <button id = "cancel-receipt" onclick="hide(); return false;">Cancel</button>
+            <button id = "save-receipt" onclick="addReceipt(); return false;">Add Receipt</button>
+
+
+        </div>
+        <table width="100%" id="receiptList">
+        </table>
     </div>
-    <table width="100%" id="receiptList">
-    </table>
+    <div id="containerRight" class="invisible">
+        <button id="snapshot" disabled="true">Take a Snapshot!</button>
+        <button id="take-pic-cancel" onclick="showCam()">Cancel Cam</button>
+        <br>
+        <div id="vidwrap">
+            <video autoplay></video>
+        </div>
+
+    </div>
 </DIV>
-<button id="start">Start Video</button>
-<button id="snapshot" disabled="true">Take a Snapshot!</button>
-<br>
-<div id="vidwrap">
-    <video autoplay></video>
-</div>
+
+
+
 </body>
 
 </html>
